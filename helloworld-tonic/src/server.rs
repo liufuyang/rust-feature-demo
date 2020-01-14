@@ -43,4 +43,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// grpcurl -plaintext -import-path ./proto -proto helloworld.proto -d '{"name": "Joe"}' localhost:50051 helloworld.Greeter/SayHello
+/* Use command like this to send request to server:
+   grpcurl -plaintext -import-path ./proto -proto helloworld.proto \
+     -d '{"name": "Joe"}' \
+     localhost:50051 helloworld.Greeter/SayHello
+*/

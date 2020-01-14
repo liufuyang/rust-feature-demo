@@ -1,7 +1,7 @@
 [package]
 name = "helloworld-tonic"
 version = "0.1.0"
-authors = ["Fuyang Liu <fuyangl@spotify.com>"]
+authors = ["Fuyang Liu <liufuyang@users.noreply.github.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -15,10 +15,10 @@ path = "src/server.rs"
 #path = "src/client.rs"
 
 [dependencies]
-tonic = { git = "https://github.com/hyperium/tonic", branch = "master"} # "0.1.0-beta.1"
+tonic = "0.1.0"
 prost = "0.6"
 # prost-types = "0.6"
 tokio = { version = "0.2", features = ["macros"] }
 
 [build-dependencies]
-tonic-build = { git = "https://github.com/hyperium/tonic", branch = "master"}
+tonic-build = "0.1.0"

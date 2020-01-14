@@ -692,8 +692,9 @@ dependencies = [
 
 [[package]]
 name = "tonic"
-version = "0.1.0-beta.1"
-source = "git+https://github.com/hyperium/tonic#6ee2ed9b4ff30c0517d70908c6348a633dab5b91"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "796bf8f5c49c0a50835f4dc0baff7abe0773c7c53abc2b2a76cc012328cca027"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -721,8 +722,9 @@ dependencies = [
 
 [[package]]
 name = "tonic-build"
-version = "0.1.0-beta.1"
-source = "git+https://github.com/hyperium/tonic#6ee2ed9b4ff30c0517d70908c6348a633dab5b91"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ae1da859b1c093ce54a130fbb8c94c920133d0937035e8004610263785aba9e"
 dependencies = [
  "proc-macro2",
  "prost-build",
