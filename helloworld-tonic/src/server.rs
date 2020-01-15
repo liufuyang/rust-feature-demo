@@ -1,14 +1,19 @@
+use std::collections::HashMap;
+
 use tonic::{Request, Response, Status, transport::Server};
 
 use hello_world::{HelloReply, HelloRequest};
 use hello_world::greeter_server::{Greeter, GreeterServer};
+use std::sync::Mutex;
 
 pub mod hello_world {
     tonic::include_proto!("helloworld");
 }
 
 #[derive(Default)]
-pub struct MyGreeter {}
+pub struct MyGreeter {
+    map: Mutex<HashMap<String, u32>>
+}
 
 #[tonic::async_trait]
 impl Greeter for MyGreeter {
@@ -24,6 +29,9 @@ impl Greeter for MyGreeter {
             message: format!("Hello {}!", request.name),
             length: request.name.len() as u32,
         };
+
+        self.map.lock().unwrap().get_mut("add1").map(|v| *v += 1);
+        println!("map {:?}", self.map);
         Ok(Response::new(reply))
     }
 }
@@ -31,7 +39,14 @@ impl Greeter for MyGreeter {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "[::1]:50051".parse().unwrap();
-    let greeter = MyGreeter::default();
+    let greeter = MyGreeter {
+        map: {
+            let mut m: HashMap<String, u32> = HashMap::new();
+            m.insert("add1".to_string(), 0);
+            Mutex::new(m)
+        },
+        ..Default::default()
+    };
 
     println!("GreeterServer listening on {}", addr);
 
