@@ -1,7 +1,7 @@
 use tonic::{metadata::MetadataValue, Request, Response, Status, transport::Channel, transport::Server};
 
 use metadata::GetTrackRequest;
-use metadata_v1beta1::metadata_client::MetadataClient;
+use metadata::metadata_client::MetadataClient;
 use track_info::{TitleAndArtist, TrackToStringRequest};
 use track_info::golden_path_example_service_server::{GoldenPathExampleService, GoldenPathExampleServiceServer};
 
@@ -10,10 +10,6 @@ pub mod track_info {
 }
 
 pub mod metadata {
-    tonic::include_proto!("spotify.metadata");
-}
-
-pub mod metadata_v1beta1 {
     tonic::include_proto!("spotify.metadata.v1beta1");
 }
 
@@ -61,10 +57,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "[::1]:50052".parse().unwrap();
 
     let channel = Channel::from_static("http://gew1-metadataproxygrpc-b-m9mx.gew1.spotify.net.:8080").connect().await?;
-    let token = MetadataValue::from_str("xxx")?;
+    let token = MetadataValue::from_str("IgJ1c3IgY2RiM2EzOTA4NWEzNDg2MzkxZDA1NDIxMWUwZTUyOGM=")?;
+    let time = MetadataValue::from_str("5000000u")?;
     let metadata_client = MetadataClient::with_interceptor(channel, move |mut req: Request<()>| {
         println!("inserting key");
-        req.metadata_mut().insert("authorization", token.clone());
+        req.metadata_mut().insert("spotify-userinfo", token.clone());
+        req.metadata_mut().insert("grpc-timeout", time.clone());
         println!("req updated");
         Ok(req)
     });

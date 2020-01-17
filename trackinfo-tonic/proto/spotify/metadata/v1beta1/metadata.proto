@@ -15,7 +15,7 @@ syntax = "proto2";
 // rather than have something like "repeated bytes track_gid" so that we can
 // more easily add additional data in the future, if needed.
 
-package spotify.metadata;
+package spotify.metadata.v1beta1;
 
 option optimize_for = SPEED;
 

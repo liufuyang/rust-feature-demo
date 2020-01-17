@@ -3,11 +3,11 @@ syntax = "proto3";
 package spotify.metadata.v1beta1;
 
 import "google/protobuf/duration.proto";
-import "spotify/metadata/metadata.proto";
+import "metadata.proto";
 
 option java_multiple_files = true;
 option java_outer_classname = "ServiceProto";
-option java_package = "com.spotify.metadata";
+option java_package = "com.spotify.metadata.v1beta1";
 
 // The Metadata Service serves the main metadata entities of Spotify: Artist, Album, Track, Show and Episode
 // This is an experimental gRPC description of the /metadata/4/ Hermes API. The behaviour of this
@@ -82,7 +82,7 @@ message GetArtistRequest {
 
 message GetArtistResponse {
     oneof entity {
-        spotify.metadata.Artist artist = 1;
+        spotify.metadata.v1beta1.Artist artist = 1;
         bool not_modified = 2;
     }
 
@@ -120,7 +120,7 @@ message GetAlbumRequest {
 
 message GetAlbumResponse {
     oneof entity {
-        spotify.metadata.Album album = 1;
+        spotify.metadata.v1beta1.Album album = 1;
         bool not_modified = 2;
     }
 
@@ -161,7 +161,7 @@ message GetTrackRequest {
 
 message GetTrackResponse {
     oneof entity {
-        spotify.metadata.Track track = 1;
+        spotify.metadata.v1beta1.Track track = 1;
         bool not_modified = 2;
     }
 
@@ -195,7 +195,7 @@ message GetShowRequest {
 
 message GetShowResponse {
     oneof entity {
-        spotify.metadata.Show show = 1;
+        spotify.metadata.v1beta1.Show show = 1;
         bool not_modified = 2;
     }
 
@@ -226,7 +226,7 @@ message GetEpisodeRequest {
 
 message GetEpisodeResponse {
     oneof entity {
-        spotify.metadata.Episode episode = 1;
+        spotify.metadata.v1beta1.Episode episode = 1;
         bool not_modified = 2;
     }
 
