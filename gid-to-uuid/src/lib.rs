@@ -14,7 +14,7 @@ struct UrlInfo {
     hex_id: String,
 }
 
-async fn to_uuid(gid: &str) -> Result<String> {
+pub async fn to_uuid(gid: &str) -> Result<String> {
     let client = Client::new();
 
     let url = format!("http://b62.spotify.net/spotify:track:{}", gid);
@@ -26,8 +26,6 @@ async fn to_uuid(gid: &str) -> Result<String> {
 
     // try to parse as json with serde_json
     let url_info: UrlInfo = serde_json::from_reader(body.reader())?;
-
-    println!("{:?}", url_info);
 
     Ok(url_info.hex_id)
 }

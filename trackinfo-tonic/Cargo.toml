@@ -11,7 +11,8 @@ name = "trackinfo-server"
 path = "src/server.rs"
 
 [dependencies]
-tonic = { path = "../../tonic/tonic"}
+gid-to-uuid = { path = "../gid-to-uuid" }
+tonic = { path = "../../tonic/tonic" }
 prost = "0.6"
 prost-types = "0.6"
 tokio = { version = "0.2", features = ["macros"] }

@@ -1,4 +1,5 @@
-use tonic::{metadata::MetadataValue, Request, Response, Status, transport::Channel, transport::Server};
+use gid_to_uuid::to_uuid;
+use tonic::{Code, metadata::MetadataValue, Request, Response, Status, transport::Channel, transport::Server};
 
 use metadata::{get_track_response::Entity, GetTrackRequest};
 use metadata::metadata_client::MetadataClient;
@@ -26,10 +27,14 @@ impl GoldenPathExampleService for Service {
     ) -> Result<Response<TitleAndArtist>, Status> {
         println!("Got a request from {:?}", request.remote_addr());
 
-        let request = request.into_inner(); // We must use .into_inner() as the fields of gRPC requests and responses are private
+        let track_id = request.into_inner().track_id; // We must use .into_inner() as the fields of gRPC requests and responses are private
+        let track_uuid = match to_uuid(&track_id).await {
+            Ok(uuid) => uuid,
+            Err(e) => return Err(Status::new(Code::InvalidArgument, e.to_string()))
+        };
 
-        let track_request = tonic::Request::new(GetTrackRequest {
-            gid: "3ff764c7c652446cbd79c05cfd8f59a7".into(),
+        let track_request= tonic::Request::new(GetTrackRequest {
+            gid: track_uuid,
             country: "US".into(),
             catalogue: "free".into(),
             accept_language: vec![],
@@ -38,23 +43,23 @@ impl GoldenPathExampleService for Service {
             etag: vec![],
         });
 
-        println!("{:?}", track_request);
+        println!("Request -> {:?}", track_request);
         //  tonic's clients are always backed by channels so cloning them is cheap
         let mut client = self.metadata_client.clone();
         let response = client.get_track(track_request).await?;
 
-        if let Entity::Track(track) = response.into_inner().entity.unwrap() {
-            println!("x={:?}", track);
-
-            let reply = TitleAndArtist {
-                track_string: format!("{}, {}", track.name.unwrap(), track.album.unwrap().name.unwrap()),
-            };
-            Ok(Response::new(reply))
-        } else {
-            let reply = TitleAndArtist {
-                track_string: format!("NOT_FOUND"),
-            };
-            Ok(Response::new(reply))
+        match response.into_inner().entity {
+            Some(Entity::Track(track)) => {
+                let reply = TitleAndArtist {
+                    track_string: format!("{}, {}",
+                                          track.name.unwrap_or("".to_string()),
+                                          track.album.map(|a| a.name).flatten().unwrap_or("".to_string()))
+                };
+                Ok(Response::new(reply))
+            }
+            _ => {
+                Err(Status::new(Code::NotFound, "No track entity found"))
+            }
         }
     }
 }
@@ -91,6 +96,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 /* Use command like this to send request to server:
    grpcurl -plaintext -import-path ./proto -proto trackinfo.proto \
-     -d '{"trackId": "Joe"}' \
+     -d '{"trackId": "1WHzHtbCV4OoB0TLgG7eMD"}' \
      localhost:50052 spotify.goldenpathexamples.GoldenPathExampleService/TrackToString
 */
