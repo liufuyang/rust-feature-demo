@@ -1,9 +1,9 @@
 syntax = "proto3";
 
-package spotify.metadata;
+package spotify.metadata.v1beta1;
 
 import "google/protobuf/duration.proto";
-import "metadata.proto";
+import "spotify/metadata/metadata.proto";
 
 option java_multiple_files = true;
 option java_outer_classname = "ServiceProto";
