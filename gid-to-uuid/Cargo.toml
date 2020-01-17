@@ -1,0 +1,19 @@
+[package]
+name = "gid-to-uuid"
+version = "0.1.0"
+authors = ["Fuyang Liu <fuyangl@spotify.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+hyper = "0.13"
+tokio = { version = "0.2"}
+serde = "1.0"
+serde_derive = "1.0"
+serde_json = "1.0"
+bytes = "0.5"
+
+[dev-dependencies]
+tokio = { version = "0.2.2", features = ["fs", "macros", "io-std", "rt-util", "sync", "time", "test-util"] }
+tokio-test = "0.2"

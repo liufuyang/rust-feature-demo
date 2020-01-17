@@ -1,0 +1,284 @@
+syntax = "proto3";
+
+package spotify.metadata;
+
+import "google/protobuf/duration.proto";
+import "metadata.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "ServiceProto";
+option java_package = "com.spotify.metadata";
+
+// The Metadata Service serves the main metadata entities of Spotify: Artist, Album, Track, Show and Episode
+// This is an experimental gRPC description of the /metadata/4/ Hermes API. The behaviour of this
+// gRPC incarnation of the metadata API should be identical to the Hermes REST API v4.
+//
+// Differences between Hermes and gRPC API:
+//
+//   - URI and query parameters in Hermes become fields of the request payload in gRPC
+//   - Mercury cache headers (mc-etag, mc-ttl, mc-cache-policy) are returned as fields in the response payload
+//   - Content-Type follows the gRPC specification and becomes "application/grpc+proto"
+//   - The ?alt=json query parameter has been dropped as it's purpose should be fulfilled by generic tools
+//   - When the request contains a matching etag, the response status is OK with the entity.not_modified set to true.
+//     This is due to the fact that gRPC does not have a "NOT MODIFIED" status.
+//
+// As communicated by the version "v1-beta1" this is subject to change as we learn more about designing idiomatic gRPC APIs.
+//
+// This gRPC API follows the excellent [Google Cloud API Design Guide][1] and [Uber's Protobuf Style Guide][2].
+//
+// [1]: https://cloud.google.com/apis/design/
+// [2]: https://github.com/uber/prototool/blob/dev/etc/style/uber1/uber1.proto
+service Metadata {
+    // Get an artist
+    rpc GetArtist (GetArtistRequest) returns (GetArtistResponse) {
+        option idempotency_level = NO_SIDE_EFFECTS;
+    }
+
+    // Get an album
+    rpc GetAlbum (GetAlbumRequest) returns (GetAlbumResponse) {
+        option idempotency_level = NO_SIDE_EFFECTS;
+    }
+
+    // Get a track
+    rpc GetTrack (GetTrackRequest) returns (GetTrackResponse) {
+        option idempotency_level = NO_SIDE_EFFECTS;
+    }
+
+    // Get a show
+    rpc GetShow (GetShowRequest) returns (GetShowResponse) {
+        option idempotency_level = NO_SIDE_EFFECTS;
+    }
+
+    // Get an episode
+    rpc GetEpisode (GetEpisodeRequest) returns (GetEpisodeResponse) {
+        option idempotency_level = NO_SIDE_EFFECTS;
+    }
+}
+
+
+message GetArtistRequest {
+    // An artist gid (a lower case UUID without dashes). This field is mandatory.
+    string gid = 1;
+
+    // ISO 3166-1 alpha-2 country code, upper case. This field is mandatory.
+    string country = 2;
+
+    // The user's catalogue. E.g. `free` or `premium`. This field is mandatory.
+    string catalogue = 3;
+
+    // List of accepted languages, most preferred first, in BCP-47 format. Assuming `und` if empty list.
+    repeated string accept_language = 4;
+
+    // Preview future releases
+    bool preview = 5;
+
+    // An etag received in a previous response. If set to a non-empty value that matches
+    // the current etag, the server will respond `entity.not_modified` set to true.
+    bytes etag = 6;
+
+    // A subset of fields to be populated in the returned entity
+    ArtistView view = 7;
+}
+
+message GetArtistResponse {
+    oneof entity {
+        spotify.metadata.Artist artist = 1;
+        bool not_modified = 2;
+    }
+
+    // Version of the entity. It can change without the actual entity being changed.
+    int64 version = 3;
+
+    // Language of the response, in BCP-47 format. May be empty string if unknown.
+    string content_language = 4;
+
+    // Information about caching this response
+    Caching caching = 5;
+}
+
+message GetAlbumRequest {
+    // An album gid (a lower case UUID without dashes). This field is mandatory.
+    string gid = 1;
+
+    // ISO 3166-1 alpha-2 country code, upper case. This field is mandatory.
+    string country = 2;
+
+    // The user's catalogue. E.g. `free` or `premium`. This field is mandatory.
+    string catalogue = 3;
+
+    // List of accepted languages, most preferred first, in BCP-47 format. Assuming `und` if empty list.
+    repeated string accept_language = 4;
+
+    // Preview future releases
+    bool preview = 5;
+
+    // An etag received in a previous response. If set to a non-empty value that matches
+    // the current etag, the server will respond `entity.not_modified` set to true.
+    bytes etag = 6;
+
+}
+
+message GetAlbumResponse {
+    oneof entity {
+        spotify.metadata.Album album = 1;
+        bool not_modified = 2;
+    }
+
+    // Version of the entity. It can change without the actual entity being changed.
+    int64 version = 3;
+
+    // Language of the response, in BCP-47 format. May be empty string if unknown.
+    string content_language = 4;
+
+    // Information about caching this response
+    Caching caching = 5;
+}
+
+
+message GetTrackRequest {
+    // A track gid (a lower case UUID without dashes). This field is mandatory.
+    string gid = 1;
+
+    // ISO 3166-1 alpha-2 country code, upper case. This field is mandatory.
+    string country = 2;
+
+    // The user's catalogue. E.g. `free` or `premium`. This field is mandatory.
+    string catalogue = 3;
+
+    // List of accepted languages, most preferred first, in BCP-47 format. Assuming `und` if empty list.
+    repeated string accept_language = 4;
+
+    // Preview future releases
+    bool preview = 5;
+
+    // An etag received in a previous response. If set to a non-empty value that matches
+    // the current etag, the server will respond `entity.not_modified` set to true.
+    bytes etag = 6;
+
+    // A subset of fields to be populated in the returned entity
+    TrackView view = 7;
+}
+
+message GetTrackResponse {
+    oneof entity {
+        spotify.metadata.Track track = 1;
+        bool not_modified = 2;
+    }
+
+    // Version of the entity. It can change without the actual entity being changed.
+    int64 version = 3;
+
+    // Language of the response, in BCP-47 format. May be empty string if unknown.
+    string content_language = 4;
+
+    // Information about caching this response
+    Caching caching = 5;
+}
+
+message GetShowRequest {
+    // A show gid (a lower case UUID without dashes). This field is mandatory.
+    string gid = 1;
+
+    // ISO 3166-1 alpha-2 country code, upper case. This field is mandatory.
+    string country = 2;
+
+    // The user's catalogue. E.g. `free` or `premium`. This field is mandatory.
+    string catalogue = 3;
+
+    // Preview future releases
+    bool preview = 5;
+
+    // An etag received in a previous response. If set to a non-empty value that matches
+    // the current etag, the server will respond `entity.not_modified` set to true.
+    bytes etag = 6;
+}
+
+message GetShowResponse {
+    oneof entity {
+        spotify.metadata.Show show = 1;
+        bool not_modified = 2;
+    }
+
+    // Version of the entity. It can change without the actual entity being changed.
+    int64 version = 3;
+
+    // Information about caching this response
+    Caching caching = 5;
+}
+
+message GetEpisodeRequest {
+    // An episode gid (a lower case UUID without dashes). This field is mandatory.
+    string gid = 1;
+
+    // ISO 3166-1 alpha-2 country code, upper case. This field is mandatory.
+    string country = 2;
+
+    // The user's catalogue. E.g. `free` or `premium`. This field is mandatory.
+    string catalogue = 3;
+
+    // Preview future releases
+    bool preview = 5;
+
+    // An etag received in a previous response. If set to a non-empty value that matches
+    // the current etag, the server will respond `entity.not_modified` set to true.
+    bytes etag = 6;
+}
+
+message GetEpisodeResponse {
+    oneof entity {
+        spotify.metadata.Episode episode = 1;
+        bool not_modified = 2;
+    }
+
+    // Version of the entity. It can change without the actual entity being changed.
+    int64 version = 3;
+
+    // Information about caching this response
+    Caching caching = 5;
+}
+
+message Caching {
+    enum CachePolicy {
+        CACHE_POLICY_UNKNOWN = 0;
+
+        // The data may be cached and can be shared with other user
+        CACHE_POLICY_PUBLIC = 1;
+
+        // This data may be cached in a user’s own private cache not to be shared with other users
+        CACHE_POLICY_PRIVATE = 2;
+
+        // Do not cache at all
+        CACHE_POLICY_NO_CACHE = 3;
+    }
+
+    // A strict etag for the entity that can be supplied when requesting the same data again
+    bytes etag = 1;
+
+    // Time-to-live, this entity should not be cached beyond the TTL
+    google.protobuf.Duration ttl = 2;
+
+    // How caches should treat this response
+    CachePolicy cache_policy = 3;
+}
+
+enum ArtistView {
+    // Full artist (default)
+    ARTIST_VIEW_DEFAULT = 0;
+
+    // Just the biography for an artist
+    ARTIST_VIEW_BIO = 1;
+
+    // Just the top tracks for an artist
+    ARTIST_VIEW_TOP_TRACKS = 2;
+
+    // Just the basic information for an artist (name, portrait)
+    ARTIST_VIEW_SMALL = 3;
+}
+
+enum TrackView {
+    // Full track (default)
+    TRACK_VIEW_DEFAULT = 0;
+
+    // Just the transcoded audio for the track
+    TRACK_VIEW_FILES = 1;
+}

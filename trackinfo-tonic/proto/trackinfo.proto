@@ -1,0 +1,27 @@
+// https://ghe.spotify.net/fabric/golden-path-examples/blob/master/src/main/proto/golden_path_examples.proto
+
+syntax = "proto3";
+
+package spotify.goldenpathexamples;
+option java_package = "com.spotify.goldenpathexamples.proto";
+option java_multiple_files = true;
+option java_outer_classname = "GoldenPathExamplesProto";
+
+// An ExampleTrackRequest takes a track id
+message TrackToStringRequest {
+    // track id (Base62 encoded)
+    string trackId = 1;
+}
+
+message TitleAndArtist {
+    // short textual representation of a track that contains track title and artist
+    string trackString = 1;
+}
+
+/*
+ The GoldenPathExampleService provides a method to serve as an example in the Golden Path.
+*/
+service GoldenPathExampleService {
+    // TrackToString will give you a string representing the input track.
+    rpc TrackToString (TrackToStringRequest) returns (TitleAndArtist) {}
+}
