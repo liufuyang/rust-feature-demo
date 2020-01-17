@@ -19,6 +19,7 @@ pub struct Service {
     metadata_client: MetadataClient<Channel>
 }
 
+// https://ghe.spotify.net/fabric/golden-path-examples/blob/master/src/main/java/com/spotify/goldenpathexamples/GrpcTrackProvider.java#L46
 #[tonic::async_trait]
 impl GoldenPathExampleService for Service {
     async fn track_to_string(
@@ -94,8 +95,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-/* Use command like this to send request to server:
-   grpcurl -plaintext -import-path ./proto -proto trackinfo.proto \
-     -d '{"trackId": "1WHzHtbCV4OoB0TLgG7eMD"}' \
-     localhost:50052 spotify.goldenpathexamples.GoldenPathExampleService/TrackToString
+/*
+    Use command like this to send request to server:
+
+    grpcurl -plaintext -import-path ./proto -proto trackinfo.proto \
+        -d '{"trackId": "1WHzHtbCV4OoB0TLgG7eMD"}' \
+        localhost:50052 spotify.goldenpathexamples.GoldenPathExampleService/TrackToString
+
+
+    https://spotify.stackenterprise.co/questions/3381/6285#6285
+    curl http://b62.spotify.net/spotify:track:0KKeRdzSUP5yEPLakW6CFE
+    dig -t srv +short _spotify-$service._grpc.services.gew1.spotify.net | awk 'NR==1{printf("%s:%s", $4, $3)}'
+
+    grpcurl -plaintext -max-time 5 -d '{"gid": "18c5dd0479ad446b9f1bbbcfea8ce59e", "country": "DK", "catalogue": "free"}' \
+        -H "spotify-userinfo-bin: IgJ1c3IgY2RiM2EzOTA4NWEzNDg2MzkxZDA1NDIxMWUwZTUyOGM=" \
+        gew1-metadataproxygrpc-b-m9mx.gew1.spotify.net.:8080 spotify.metadata.v1beta1.Metadata/GetTrack
 */
