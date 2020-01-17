@@ -16,9 +16,9 @@ struct Cat {
 lazy_static! {
     static ref MAP: Mutex<HashMap<String, u32>> = {
         let mut m: HashMap<String, u32> = HashMap::new();
-        m.insert("add1".to_owned(), 0);
-        m.insert("add2".to_owned(), 0);
-        m.insert("add3".to_owned(), 0);
+        m.insert("add1".to_string(), 0);
+        m.insert("add2".to_string(), 0);
+        m.insert("add3".to_string(), 0);
         Mutex::new(m)
     };
 }
