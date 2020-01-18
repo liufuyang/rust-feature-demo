@@ -7,13 +7,12 @@ import com.spotify.apollo.Response;
 import com.spotify.apollo.route.AsyncHandler;
 import com.spotify.apollo.route.JsonSerializerMiddlewares;
 import com.spotify.apollo.route.Route;
-import okio.ByteString;
-
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
+import okio.ByteString;
 
 public class DummyResource {
 
@@ -29,7 +28,9 @@ public class DummyResource {
   }
 
   public Stream<Route<AsyncHandler<Response<ByteString>>>> routes() {
-    return Stream.of(Route.async("GET", "/add", this::add), Route.async("GET", "/show", this::show),
+    return Stream.of(
+            Route.async("GET", "/add", this::add),
+            Route.async("GET", "/show", this::show),
             Route.async("GET", "/reset", this::reset))
         .map(
             route ->
