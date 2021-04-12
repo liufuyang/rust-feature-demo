@@ -54,6 +54,7 @@ impl GoldenPathExampleService for Service {
         //  tonic's clients are always backed by channels so cloning them is cheap
         let mut client = self.metadata_client.clone();
         let response = client.get_track(track_request).await?;
+        println!("response -> {:?}", response);
 
         match response.into_inner().entity {
             Some(Entity::Track(track)) => {
@@ -77,13 +78,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let channel = Channel::from_static("http://gew1-metadataproxygrpc-a-m2q8.gew1.spotify.net.:22154").connect().await?;
     let token = MetadataValue::from_static("IgJ1c3IgY2RiM2EzOTA4NWEzNDg2MzkxZDA1NDIxMWUwZTUyOGM=");
-    let time = MetadataValue::from_str("5000000u")?; // 5 sec
+    let time = MetadataValue::from_str("5S")?; // 5 sec, see timeout unit definition at https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md
+
     let metadata_client = MetadataClient::with_interceptor(channel, move |mut req: Request<()>| {
 
         // Noticing below "insert_bin" has to be used rather than "insert", as we have key tagged with -bin.
         // token is made with MetadataValue::from_static() which will not do b64 encode again.
         req.metadata_mut().insert_bin("spotify-userinfo-bin", token.clone());
         req.metadata_mut().insert("grpc-timeout", time.clone());
+        // above header change of `grpc-timeout` for now only works with a patch to tonic: https://github.com/hyperium/tonic/pull/603
 
         Ok(req)
     });

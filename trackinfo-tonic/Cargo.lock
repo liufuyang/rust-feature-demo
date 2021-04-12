@@ -734,8 +734,7 @@ dependencies = [
 [[package]]
 name = "tonic"
 version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91491e5f15431f2189ec8c1f9dcbadac949450399c22c912ceae9570eb472f61"
+source = "git+https://github.com/liufuyang/tonic.git?branch=remote-timeout-header-from-reserved-list#3170af236b108faf33c211b3d65d88cfd9076062"
 dependencies = [
  "async-stream",
  "async-trait",
