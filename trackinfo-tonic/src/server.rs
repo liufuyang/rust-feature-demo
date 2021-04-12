@@ -1,4 +1,5 @@
-use gid_to_uuid::to_uuid;
+use std::str::Utf8Error;
+
 use tonic::{Code, metadata::MetadataValue, Request, Response, Status, transport::Channel, transport::Server};
 
 use metadata::{get_track_response::Entity, GetTrackRequest};
@@ -19,6 +20,11 @@ pub struct Service {
     metadata_client: MetadataClient<Channel>
 }
 
+fn to_uuid(input: &str) -> Result<String, Utf8Error> {
+    let hex = rb62::get_hex(input).unwrap();
+    std::str::from_utf8(&hex).map(|s| s.to_string())
+}
+
 // https://ghe.spotify.net/fabric/golden-path-examples/blob/master/src/main/java/com/spotify/goldenpathexamples/GrpcTrackProvider.java#L46
 #[tonic::async_trait]
 impl GoldenPathExampleService for Service {
@@ -29,12 +35,12 @@ impl GoldenPathExampleService for Service {
         println!("Got a request from {:?}", request.remote_addr());
 
         let track_id = request.into_inner().track_id; // We must use .into_inner() as the fields of gRPC requests and responses are private
-        let track_uuid = match to_uuid(&track_id).await {
+        let track_uuid = match to_uuid(&track_id) {
             Ok(uuid) => uuid,
             Err(e) => return Err(Status::new(Code::InvalidArgument, e.to_string()))
         };
 
-        let track_request= tonic::Request::new(GetTrackRequest {
+        let track_request = tonic::Request::new(GetTrackRequest {
             gid: track_uuid,
             country: "US".into(),
             catalogue: "free".into(),
@@ -69,7 +75,7 @@ impl GoldenPathExampleService for Service {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "[::1]:50052".parse().unwrap();
 
-    let channel = Channel::from_static("http://gew1-metadataproxygrpc-b-m9mx.gew1.spotify.net.:8080").connect().await?;
+    let channel = Channel::from_static("http://gew1-metadataproxygrpc-a-m2q8.gew1.spotify.net.:22154").connect().await?;
     let token = MetadataValue::from_static("IgJ1c3IgY2RiM2EzOTA4NWEzNDg2MzkxZDA1NDIxMWUwZTUyOGM=");
     let time = MetadataValue::from_str("5000000u")?; // 5 sec
     let metadata_client = MetadataClient::with_interceptor(channel, move |mut req: Request<()>| {

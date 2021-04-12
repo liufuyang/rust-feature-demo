@@ -11,11 +11,12 @@ name = "trackinfo-server"
 path = "src/server.rs"
 
 [dependencies]
-gid-to-uuid = { path = "../gid-to-uuid" }
-tonic = { path = "../../tonic/tonic" }
-prost = "0.6"
-prost-types = "0.6"
-tokio = { version = "0.2", features = ["macros"] }
+# gid-to-uuid = { path = "../gid-to-uuid" }
+rb62 = { git = 'https://github.com/liufuyang/rb62.git' }
+tonic = "0.4.1"
+prost = "0.7.0"
+prost-types = "0.7.0"
+tokio = { version = "1.0", features = ["rt-multi-thread", "time", "fs", "macros", "net"] }
 
 [build-dependencies]
-tonic-build = "0.1.0"
+tonic-build = "0.4.1"
