@@ -1,6 +1,12 @@
+use std::{
+    task::{Context, Poll},
+};
 use std::str::Utf8Error;
 
-use tonic::{Code, metadata::MetadataValue, Request, Response, Status, transport::Channel, transport::Server};
+use http::{HeaderValue, Request as HttpRequest};
+use tonic::{Code, metadata::MetadataValue, Request, Response, Status};
+use tonic::transport::{Channel, NamedService, Server};
+use tower_service::Service as TowerService;
 
 use metadata::{get_track_response::Entity, GetTrackRequest};
 use metadata::metadata_client::MetadataClient;
@@ -40,7 +46,7 @@ impl GoldenPathExampleService for Service {
             Err(e) => return Err(Status::new(Code::InvalidArgument, e.to_string()))
         };
 
-        let track_request = tonic::Request::new(GetTrackRequest {
+        let mut track_request = tonic::Request::new(GetTrackRequest {
             gid: track_uuid,
             country: "US".into(),
             catalogue: "free".into(),
@@ -49,6 +55,7 @@ impl GoldenPathExampleService for Service {
             view: 0,
             etag: vec![],
         });
+        track_request.metadata_mut().insert("grpc-timeout", MetadataValue::from_static("5S"));
 
         println!("Request -> {:?}", track_request);
         //  tonic's clients are always backed by channels so cloning them is cheap
@@ -76,32 +83,68 @@ impl GoldenPathExampleService for Service {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "[::1]:50052".parse().unwrap();
 
-    let channel = Channel::from_static("http://gew1-metadataproxygrpc-a-m2q8.gew1.spotify.net.:22154").connect().await?;
+    let channel = Channel::from_static("http://gew1-metadataproxygrpc-a-q9gg.gew1.spotify.net.:20119").connect().await?;
     let token = MetadataValue::from_static("IgJ1c3IgY2RiM2EzOTA4NWEzNDg2MzkxZDA1NDIxMWUwZTUyOGM=");
-    let time = MetadataValue::from_str("5S")?; // 5 sec, see timeout unit definition at https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md
 
     let metadata_client = MetadataClient::with_interceptor(channel, move |mut req: Request<()>| {
 
         // Noticing below "insert_bin" has to be used rather than "insert", as we have key tagged with -bin.
         // token is made with MetadataValue::from_static() which will not do b64 encode again.
         req.metadata_mut().insert_bin("spotify-userinfo-bin", token.clone());
-        req.metadata_mut().insert("grpc-timeout", time.clone());
+        println!("interceptor block req: {:?}", req.metadata());
         // above header change of `grpc-timeout` for now only works with a patch to tonic: https://github.com/hyperium/tonic/pull/603
 
         Ok(req)
     });
-    let service = Service {
+    let svc = Service {
         metadata_client,
+    };
+    let svc = GoldenPathExampleServiceServer::new(svc);
+    let svc = Timeout {
+        inner: svc,
+        time: HeaderValue::from_static("5S"), // 5 sec, see timeout unit definition at https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md
     };
 
     println!("Server listening on {}", addr);
 
     Server::builder()
-        .add_service(GoldenPathExampleServiceServer::new(service))
+        .add_service(svc)
         .serve(addr)
         .await?;
 
     Ok(())
+}
+
+#[derive(Debug, Clone)]
+struct Timeout<S> {
+    inner: S,
+    time: HeaderValue,
+}
+
+type Error = Box<dyn std::error::Error + Send + Sync>;
+
+impl<S, ReqBody> TowerService<HttpRequest<ReqBody>> for Timeout<S>
+    where
+        S: TowerService<HttpRequest<ReqBody>>,
+        S::Error: Into<Error>,
+{
+    type Response = S::Response;
+    type Error = S::Error;
+    type Future = S::Future;
+
+    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
+    }
+
+    fn call(&mut self, mut req: HttpRequest<ReqBody>) -> Self::Future {
+        req.headers_mut().insert("grpc-timeout", self.time.clone());
+        println!("call block req: {:?}", req.headers());
+        self.inner.call(req)
+    }
+}
+
+impl<S: NamedService> NamedService for Timeout<S> {
+    const NAME: &'static str = S::NAME;
 }
 
 /*
@@ -115,6 +158,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     https://spotify.stackenterprise.co/questions/3381/6285#6285
     curl http://b62.spotify.net/spotify:track:0KKeRdzSUP5yEPLakW6CFE
     dig -t srv +short _spotify-$service._grpc.services.gew1.spotify.net | awk 'NR==1{printf("%s:%s", $4, $3)}'
+    # change $service to metadata
 
     grpcurl -plaintext -max-time 5 -d '{"gid": "18c5dd0479ad446b9f1bbbcfea8ce59e", "country": "DK", "catalogue": "free"}' \
         -H "spotify-userinfo-bin: IgJ1c3IgY2RiM2EzOTA4NWEzNDg2MzkxZDA1NDIxMWUwZTUyOGM=" \

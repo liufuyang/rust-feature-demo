@@ -733,8 +733,9 @@ dependencies = [
 
 [[package]]
 name = "tonic"
-version = "0.4.1"
-source = "git+https://github.com/liufuyang/tonic.git?branch=remote-timeout-header-from-reserved-list#3170af236b108faf33c211b3d65d88cfd9076062"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "556dc31b450f45d18279cfc3d2519280273f460d5387e6b7b24503e65d206f8b"
 dependencies = [
  "async-stream",
  "async-trait",
@@ -850,12 +851,14 @@ dependencies = [
 name = "trackinfo-tonic"
 version = "0.1.0"
 dependencies = [
+ "http",
  "prost",
  "prost-types",
  "rb62",
  "tokio",
  "tonic",
  "tonic-build",
+ "tower-service",
 ]
 
 [[package]]
