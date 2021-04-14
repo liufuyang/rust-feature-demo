@@ -5,7 +5,7 @@ use std::str::Utf8Error;
 
 use http::{HeaderValue, Request as HttpRequest};
 use tonic::{Code, metadata::MetadataValue, Request, Response, Status};
-use tonic::transport::{Channel, NamedService, Server};
+use tonic::transport::{Channel, Server};
 use tower_service::Service as TowerService;
 
 use metadata::{get_track_response::Entity, GetTrackRequest};
@@ -21,9 +21,8 @@ pub mod metadata {
     tonic::include_proto!("spotify.metadata.v1beta1");
 }
 
-
 pub struct Service {
-    metadata_client: MetadataClient<Channel>
+    metadata_client: MetadataClient<Timeout<Channel>>
 }
 
 fn to_uuid(input: &str) -> Result<String, Utf8Error> {
@@ -46,7 +45,7 @@ impl GoldenPathExampleService for Service {
             Err(e) => return Err(Status::new(Code::InvalidArgument, e.to_string()))
         };
 
-        let mut track_request = tonic::Request::new(GetTrackRequest {
+        let track_request = tonic::Request::new(GetTrackRequest {
             gid: track_uuid,
             country: "US".into(),
             catalogue: "free".into(),
@@ -55,7 +54,8 @@ impl GoldenPathExampleService for Service {
             view: 0,
             etag: vec![],
         });
-        track_request.metadata_mut().insert("grpc-timeout", MetadataValue::from_static("5S"));
+        // track_request.metadata_mut().insert("grpc-timeout", MetadataValue::from_static("5S"));
+        // not working as "grpc-timeout" is restricted
 
         println!("Request -> {:?}", track_request);
         //  tonic's clients are always backed by channels so cloning them is cheap
@@ -85,8 +85,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let channel = Channel::from_static("http://gew1-metadataproxygrpc-a-q9gg.gew1.spotify.net.:20119").connect().await?;
     let token = MetadataValue::from_static("IgJ1c3IgY2RiM2EzOTA4NWEzNDg2MzkxZDA1NDIxMWUwZTUyOGM=");
+    let timeout_client = Timeout::new(channel,
+                                      "5S", // 5 sec, see timeout unit definition at https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md
+    );
 
-    let metadata_client = MetadataClient::with_interceptor(channel, move |mut req: Request<()>| {
+    let metadata_client = MetadataClient::with_interceptor(timeout_client, move |mut req: Request<()>| {
 
         // Noticing below "insert_bin" has to be used rather than "insert", as we have key tagged with -bin.
         // token is made with MetadataValue::from_static() which will not do b64 encode again.
@@ -96,14 +99,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         Ok(req)
     });
+
     let svc = Service {
         metadata_client,
     };
     let svc = GoldenPathExampleServiceServer::new(svc);
-    let svc = Timeout {
-        inner: svc,
-        time: HeaderValue::from_static("5S"), // 5 sec, see timeout unit definition at https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md
-    };
 
     println!("Server listening on {}", addr);
 
@@ -115,18 +115,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+/// A tower service struct for attaching timeout to request to other gRPC server
 #[derive(Debug, Clone)]
 struct Timeout<S> {
     inner: S,
-    time: HeaderValue,
+    timeout: HeaderValue,
 }
 
-type Error = Box<dyn std::error::Error + Send + Sync>;
+impl<S> Timeout<S> {
+    pub fn new(inner: S, timeout_str: &'static str) -> Self {
+        Timeout { inner, timeout: HeaderValue::from_static(timeout_str) }
+    }
+}
 
 impl<S, ReqBody> TowerService<HttpRequest<ReqBody>> for Timeout<S>
     where
         S: TowerService<HttpRequest<ReqBody>>,
-        S::Error: Into<Error>,
 {
     type Response = S::Response;
     type Error = S::Error;
@@ -137,14 +141,12 @@ impl<S, ReqBody> TowerService<HttpRequest<ReqBody>> for Timeout<S>
     }
 
     fn call(&mut self, mut req: HttpRequest<ReqBody>) -> Self::Future {
-        req.headers_mut().insert("grpc-timeout", self.time.clone());
+        println!("call block req before: {:?}", req.headers());
+        req.headers_mut().insert("grpc-timeout", self.timeout.clone());
         println!("call block req: {:?}", req.headers());
+
         self.inner.call(req)
     }
-}
-
-impl<S: NamedService> NamedService for Timeout<S> {
-    const NAME: &'static str = S::NAME;
 }
 
 /*
