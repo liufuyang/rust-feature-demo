@@ -1,17 +1,17 @@
-use std::{
-    task::{Context, Poll},
-};
 use std::str::Utf8Error;
+use std::task::{Context, Poll};
 
 use http::{HeaderValue, Request as HttpRequest};
-use tonic::{Code, metadata::MetadataValue, Request, Response, Status};
 use tonic::transport::{Channel, Server};
+use tonic::{metadata::MetadataValue, Code, Request, Response, Status};
 use tower_service::Service as TowerService;
 
-use metadata::{get_track_response::Entity, GetTrackRequest};
 use metadata::metadata_client::MetadataClient;
+use metadata::{get_track_response::Entity, GetTrackRequest};
+use track_info::golden_path_example_service_server::{
+    GoldenPathExampleService, GoldenPathExampleServiceServer,
+};
 use track_info::{TitleAndArtist, TrackToStringRequest};
-use track_info::golden_path_example_service_server::{GoldenPathExampleService, GoldenPathExampleServiceServer};
 
 pub mod track_info {
     tonic::include_proto!("spotify.goldenpathexamples");
@@ -22,7 +22,7 @@ pub mod metadata {
 }
 
 pub struct Service {
-    metadata_client: MetadataClient<Timeout<Channel>>
+    metadata_client: MetadataClient<Timeout<Channel>>,
 }
 
 fn to_uuid(input: &str) -> Result<String, Utf8Error> {
@@ -42,7 +42,7 @@ impl GoldenPathExampleService for Service {
         let track_id = request.into_inner().track_id; // We must use .into_inner() as the fields of gRPC requests and responses are private
         let track_uuid = match to_uuid(&track_id) {
             Ok(uuid) => uuid,
-            Err(e) => return Err(Status::new(Code::InvalidArgument, e.to_string()))
+            Err(e) => return Err(Status::new(Code::InvalidArgument, e.to_string())),
         };
 
         let track_request = tonic::Request::new(GetTrackRequest {
@@ -66,15 +66,19 @@ impl GoldenPathExampleService for Service {
         match response.into_inner().entity {
             Some(Entity::Track(track)) => {
                 let reply = TitleAndArtist {
-                    track_string: format!("{}, {}",
-                                          track.name.unwrap_or("".to_string()),
-                                          track.album.map(|a| a.name).flatten().unwrap_or("".to_string()))
+                    track_string: format!(
+                        "{}, {}",
+                        track.name.unwrap_or("".to_string()),
+                        track
+                            .album
+                            .map(|a| a.name)
+                            .flatten()
+                            .unwrap_or("".to_string())
+                    ),
                 };
                 Ok(Response::new(reply))
             }
-            _ => {
-                Err(Status::new(Code::NotFound, "No track entity found"))
-            }
+            _ => Err(Status::new(Code::NotFound, "No track entity found")),
         }
     }
 }
@@ -83,34 +87,34 @@ impl GoldenPathExampleService for Service {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "[::1]:50052".parse().unwrap();
 
-    let channel = Channel::from_static("http://gew1-metadataproxygrpc-a-q9gg.gew1.spotify.net.:20119").connect().await?;
+    let channel =
+        Channel::from_static("http://gew1-metadataproxygrpc-a-q9gg.gew1.spotify.net.:20119")
+            .connect()
+            .await?;
     let token = MetadataValue::from_static("IgJ1c3IgY2RiM2EzOTA4NWEzNDg2MzkxZDA1NDIxMWUwZTUyOGM=");
-    let timeout_client = Timeout::new(channel,
-                                      "5S", // 5 sec, see timeout unit definition at https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md
+    let timeout_client = Timeout::new(
+        channel,
+        "5S", // 5 sec, see timeout unit definition at https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md
     );
 
-    let metadata_client = MetadataClient::with_interceptor(timeout_client, move |mut req: Request<()>| {
+    let metadata_client =
+        MetadataClient::with_interceptor(timeout_client, move |mut req: Request<()>| {
+            // Noticing below "insert_bin" has to be used rather than "insert", as we have key tagged with -bin.
+            // token is made with MetadataValue::from_static() which will not do b64 encode again.
+            req.metadata_mut()
+                .insert_bin("spotify-userinfo-bin", token.clone());
+            println!("interceptor block req: {:?}", req.metadata());
+            // above header change of `grpc-timeout` for now only works with a patch to tonic: https://github.com/hyperium/tonic/pull/603
 
-        // Noticing below "insert_bin" has to be used rather than "insert", as we have key tagged with -bin.
-        // token is made with MetadataValue::from_static() which will not do b64 encode again.
-        req.metadata_mut().insert_bin("spotify-userinfo-bin", token.clone());
-        println!("interceptor block req: {:?}", req.metadata());
-        // above header change of `grpc-timeout` for now only works with a patch to tonic: https://github.com/hyperium/tonic/pull/603
+            Ok(req)
+        });
 
-        Ok(req)
-    });
-
-    let svc = Service {
-        metadata_client,
-    };
+    let svc = Service { metadata_client };
     let svc = GoldenPathExampleServiceServer::new(svc);
 
     println!("Server listening on {}", addr);
 
-    Server::builder()
-        .add_service(svc)
-        .serve(addr)
-        .await?;
+    Server::builder().add_service(svc).serve(addr).await?;
 
     Ok(())
 }
@@ -124,13 +128,16 @@ struct Timeout<S> {
 
 impl<S> Timeout<S> {
     pub fn new(inner: S, timeout_str: &'static str) -> Self {
-        Timeout { inner, timeout: HeaderValue::from_static(timeout_str) }
+        Timeout {
+            inner,
+            timeout: HeaderValue::from_static(timeout_str),
+        }
     }
 }
 
 impl<S, ReqBody> TowerService<HttpRequest<ReqBody>> for Timeout<S>
-    where
-        S: TowerService<HttpRequest<ReqBody>>,
+where
+    S: TowerService<HttpRequest<ReqBody>>,
 {
     type Response = S::Response;
     type Error = S::Error;
@@ -142,7 +149,8 @@ impl<S, ReqBody> TowerService<HttpRequest<ReqBody>> for Timeout<S>
 
     fn call(&mut self, mut req: HttpRequest<ReqBody>) -> Self::Future {
         println!("call block req before: {:?}", req.headers());
-        req.headers_mut().insert("grpc-timeout", self.timeout.clone());
+        req.headers_mut()
+            .insert("grpc-timeout", self.timeout.clone());
         println!("call block req: {:?}", req.headers());
 
         self.inner.call(req)
