@@ -13,10 +13,14 @@ path = "src/server.rs"
 [dependencies]
 # gid-to-uuid = { path = "../gid-to-uuid" }
 rb62 = { git = 'https://github.com/liufuyang/rb62.git' }
-tonic = { git = 'https://github.com/liufuyang/tonic.git', branch = 'remote-timeout-header-from-reserved-list'}
+tonic = "0.4.1"
+# Using the below verion works as it removed "grpc-timeout" from restrictions
+# tonic = { git = 'https://github.com/hyperium/tonic.git', rev = '0b535985c8ea78a21e8516f809fac8a4cd86f854'}
 prost = "0.7.0"
 prost-types = "0.7.0"
 tokio = { version = "1.0", features = ["rt-multi-thread", "time", "fs", "macros", "net"] }
+http = "0.2"
+tower-service = "0.3"
 
 [build-dependencies]
 tonic-build = "0.4.1"
