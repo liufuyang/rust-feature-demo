@@ -15,7 +15,7 @@ path = "src/server.rs"
 rb62 = { git = 'https://github.com/liufuyang/rb62.git' }
 tonic = "0.4.3"
 prost = "0.7.0"
-prost-types = "0.7.0"
+prost-types = "0.8.0"
 tokio = { version = "1.0", features = ["rt-multi-thread", "time", "fs", "macros", "net"] }
 
 [build-dependencies]
