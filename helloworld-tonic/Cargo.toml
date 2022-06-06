@@ -18,7 +18,7 @@ path = "src/server.rs"
 tonic = "0.1.0"
 prost = "0.6"
 # prost-types = "0.6"
-tokio = { version = "0.2", features = ["macros"] }
+tokio = { version = "1.8", features = ["macros"] }
 
 [build-dependencies]
 tonic-build = "0.1.0"
