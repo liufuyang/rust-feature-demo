@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 hyper = "0.13"
-tokio = { version = "0.2.2", features = ["full"] }
+tokio = { version = "1.8.4", features = ["full"] }
 # tokio needs feature `rt-threaded`: Enables the heavier, multi-threaded, work-stealing scheduler.
 # use "full" above to include it
 serde = "1.0"
